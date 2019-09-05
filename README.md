@@ -54,8 +54,6 @@ class ZohoCrmProvider extends CrmProvider {
 
     /* *
      * Use this function to return the client id of your crm provider
-     * 
-     * Ex- header('Authorization', 'Zoho-oauthtoken $token')
      * */
     function getClientId() {
         return 'your-crm-client-id';
@@ -63,8 +61,6 @@ class ZohoCrmProvider extends CrmProvider {
 
     /* *
      * Use this function to return the client secret of your crm provider
-     * 
-     * Ex- header('Authorization', 'Zoho-oauthtoken $token')
      * */
     function getClientSecret() {
         return 'your-crm-client-secret';
@@ -120,11 +116,7 @@ class MyClass extends CrmProvider {
 	function my_method() {
         $this->setHeader('a', 'b');
         // Or $this->getTransport()->setHeaders(['a' => 'b']);
-
-		$response = $this->getTransport()->post(
-            '/some-endpoint',
-            ['data' => 'some-data']
-		);
+        $response = $this->getTransport()->post('/some-endpoint',['data' => 'some-data']);
         var_dump($response->json());
         // {"some response": "in json"}
 	}
