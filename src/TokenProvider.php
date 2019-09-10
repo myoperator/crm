@@ -1,5 +1,5 @@
 <?php
-namespace MyOperator\Zoho;
+namespace MyOperator\Crm;
 
 interface TokenProvider {
     /**
