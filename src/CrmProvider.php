@@ -54,6 +54,8 @@ abstract class CrmProvider
     }
 
     public function getTransport() {
+        if(!$this->transport) 
+            $this->transport = new Transport;
         return $this->transport;
     }
     
