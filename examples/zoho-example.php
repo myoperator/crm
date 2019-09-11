@@ -1,31 +1,21 @@
 <?php
 
+include_once 'vendor/autoload.php';
+
 use \MyOperator\Crm\CrmProvider;
 
 
-class ZohoCrmProvider extends CrmProvider {
+class ZohoCrm extends CrmProvider {
+
+    const CRM_BASE_URL = 'https://www.zohoapis.in/crm/v2';
+    const ZOHO_OAUTH_URL = 'https://accounts.zoho.in/oauth/v2';
+
     /* *
-     * Use this function to return the value which will be set in OAuth Authorization
-     * header. This will send the following header with each request
-     * 
-     * Ex- header('Authorization', 'Zoho-oauthtoken $token')
+     * We are overriding this method since zoho uses 'Zoho-oauthtoken'
+     * as bearer in header
      * */
     function getOauthTokenKey() {
         return 'Zoho-oauthtoken';
-    }
-
-    /* *
-     * Use this function to return the client id of your crm provider
-     * */
-    function getClientId() {
-        return 'your-crm-client-id';
-    }
-
-    /* *
-     * Use this function to return the client secret of your crm provider
-     * */
-    function getClientSecret() {
-        return 'your-crm-client-secret';
     }
 
     /* *
@@ -41,11 +31,13 @@ class ZohoCrmProvider extends CrmProvider {
      * */
     function refreshToken($client_id, $client_secret, $refresh_token) {
         // This is only a sample implementation
-        $response = $your_curl_lib->post("/token?refresh_token={$refresh_token}&client_id= {$client_id}&client_secret={$client_secret}&grant_type=refresh_token");
+        $transport = $this->getTransport();
+        $response = $transport->post("https://accounts.zoho.in/oauth/v2/token?refresh_token={$refresh_token}&client_id={$client_id}&client_secret={$client_secret}&grant_type=refresh_token");
+        $response =  $response->json();
         return ['access_token' => $response['access_token'], 'timeout' => $response['expiry_in_secs']];
     }
 
-    public function searchByPhone($phonenumber) {
+    protected function searchByPhone($phonenumber) {
         $criteria = "((Phone:equals:{$phonenumber})or(Mobile:equals:{$phonenumber}))";
 
         // You can use your own curl lib here as well
@@ -53,7 +45,7 @@ class ZohoCrmProvider extends CrmProvider {
 
         try { 
             $response = $curl_lib->get(
-                self::CRM_BASE_URL . '/leads/search', 
+                'https://www.zohoapis.in/crm/v2/leads/search', 
                 ['criteria' => $criteria]
             );
             if($response->getStatus() == 204) {
