@@ -22,8 +22,6 @@ Use composer to install this package. To install, add following in your compsoer
 
 and then `composer install` to install the package.
 
-```sh
-
 ## Quick Start
 
 ### Creating your CRM Class
