@@ -1,12 +1,12 @@
 <?php
-namespace MyOperator\Crm;
+namespace \MyOperator\Crm;
 
-use MyOperator\Crm\TokenProvider;
+use \MyOperator\Crm\TokenProvider;
 
 class TokenHandler
 {
 
-    private $timeout = 3600; //1 Hour
+    const TIMEOUT = 3600; //1 Hour
 
     public function __construct($company_id) {
         $this->company_id = $company_id;
@@ -32,13 +32,12 @@ class TokenHandler
         $refresh_token = $this->getRefreshToken();
         $client_id = $this->provider->getClientId();
         $client_secret = $this->provider->getClientSecret();
-        $timeout = 3600;
         if(!$this->refreshCallback) return null;
         try{
             $access_token = $this->refreshCallback->__invoke($client_id, $client_secret, $refresh_token);
             if(is_array($access_token) && isset($access_token['access_token'])) {
                 $access_token = $access_token['access_token'];
-                $timeout = isset($access_token['timeout']) ? $access_token['timeout'] : $timeout;
+                $timeout = isset($access_token['timeout']) ? $access_token['timeout'] : self::TIMEOUT;
             }
             if($access_token) {
                 $this->provider->setAccessToken($this->company_id, $access_token, $timeout);

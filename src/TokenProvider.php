@@ -1,18 +1,7 @@
 <?php
-namespace MyOperator\Crm;
+namespace \MyOperator\Crm;
 
 interface TokenProvider {
-    /**
-     * Get API Version
-     **/
-    public function isApiV2($company_id);
-
-    /**
-     * Set Client id and secret
-     */
-    public function setClientId($authClientId);
-    public function setClientSecret($authClientSecret);
-
     /**
      * Fetch Client id and secrets
      **/
@@ -30,6 +19,6 @@ interface TokenProvider {
      *
      * $expiry 0 means non-expiring token. unit in seconds
      **/
-    public function setAccessToken($company_id, $access_token, $expiry = 0);
-    public function setRefreshToken($company_id, $refresh_token, $expiry = 0);
+    public function setAccessToken($company_id, $access_token);
+    public function setRefreshToken($company_id, $refresh_token);
 }

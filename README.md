@@ -4,9 +4,9 @@ This repository acts as a CRM provider base for CRMs using OAuth. You can easily
 
 ## Quick Start
 
-Lets suppose you're going to implement Zoho CRM Provider. You can start by:
+### Creating your CRM Class
 
-Extend your `ZohoCrmProvider` class from `\MyOperator\Crm\CrmProvider` class.
+Extend your `MyCrm` class from `\MyOperator\Crm\CrmProvider` class.
 
 ```php
 
@@ -14,57 +14,19 @@ use \MyOperator\Crm\CrmProvider;
 
 
 // Your Zoho provider
-class ZohoCrmProvider extends CrmProvider {
-    // Your implementation here
-}
-
-// Your PipeDrive provider
-class PipeDriveCrmProvider extends CrmProvider {
+class MyCrm extends CrmProvider {
     // Your implementation here
 }
 ```
 
+### Implement Refresh token mechanism
 Once you extend this class, you get access to several methods, which will help you get access
-token and refresh token, so you can focus on your implementation for sending and getting data from CRM Provider of your choice.
-
-Once you have extended, you need to implement following functions for your CRM controller to
-work correctly:
-
-- `getOauthTokenKey()`
-- `getClientId()`
-- `getClientSecret()`
-- `refreshToken()`
-
-Hence, the basic implementation looks like this:
+token and refresh token. You will need to implement `refreshToken()` method for your CRM controller to tell how to refresh token work from your crm provider.
 
 ```php
 use \MyOperator\Crm\CrmProvider;
 
-class ZohoCrmProvider extends CrmProvider {
-
-    /* *
-     * Use this function to return the value which will be set in OAuth Authorization
-     * header. This will send the following header with each request
-     * 
-     * Ex- header('Authorization', 'Zoho-oauthtoken $token')
-     * */
-    function getOauthTokenKey() {
-        return 'Zoho-oauthtoken';
-    }
-
-    /* *
-     * Use this function to return the client id of your crm provider
-     * */
-    function getClientId() {
-        return 'your-crm-client-id';
-    }
-
-    /* *
-     * Use this function to return the client secret of your crm provider
-     * */
-    function getClientSecret() {
-        return 'your-crm-client-secret';
-    }
+class MyCrm extends CrmProvider {
 
     /* *
      * Use this function to refresh the token as per your CRM implementation.
@@ -82,19 +44,93 @@ class ZohoCrmProvider extends CrmProvider {
         $response = $your_curl_lib->post("/token?refresh_token={$refresh_token}&client_id= {$client_id}&client_secret={$client_secret}&grant_type=refresh_token");
         return ['access_token' => $response['access_token'], 'timeout' => $response['expiry_in_secs']];
     }
+
+    function search($records) {
+        // Implement your crm search here
+    }
 }
 ```
 
+### Set your token provider
+
+`CrmProvider` uses any token provider which implements `MyOperator\Crm\TokenProvider` class. 
+You can use `apitokenprovider.php` as an example (from examples folder). Basic implementation follows:
+
+```php
+
+use \MyOperator\Crm\TokenProvider;
+
+class MyTokenProvider implements TokenProvider {
+
+    public function getClientId() {
+        // Implementation to get client id
+    }
+    
+    // Implement rest of the methods from TokenProvider
+}
+```
+
+### Implementation
+
+Now comes the final part. At this point, you will have two files:
+
+- `MyCrm.php`
+- `MyTokenProvider.php`
+
+You can implement this as:
+
+```php
+
+$company_id = 1;
+
+$mycrm = new MyCrm($company_id);
+
+$provider = new MyTokenProvider();
+$mycrm->setTokenProvider($provider);
+
+$results = $mycrm->search($record);
+```
+
+
 ## Available Methods
+
+### getOauthTokenKey()
+
+You can get the [Bearer](https://tools.ietf.org/html/rfc6750) name by this method.
+
+```php
+class MyCrm extends CrmProvider {
+
+    function search(){
+        var_dump($this->getOauthTokenKey());
+        // Bearer
+    }
+}
+```
+
+You can also override this method to set custom bearer on your authorization headers.
+For example, some zoho uses `Zoho-oauthtoken` as bearer. You can easily set this as:
+
+```php
+class MyCrm extends CrmProvider {
+
+    // This means our authorization header will look like
+    // `Authorization: my-bearer $token`
+    function getOauthTokenKey() {
+        return 'my-bearer';
+    }
+}
+```
+
 
 ### getTransport()
 
 This gives you a `MyOperator\Transport` instance. You can use this to make `get` or `post` calls to your API.
 
 ```php
-class MyClass extends CrmProvider {
+class MyCrm extends CrmProvider {
 
-	function my_method() {
+	function search() {
 		$curlTransport = $this->getTransport();
 		$response = $curlTransport->post(
             '/some-endpoint',
@@ -113,7 +149,7 @@ You can also set custom headers to your crm endpoint, if you need so.
 ```php
 class MyClass extends CrmProvider {
 
-	function my_method() {
+	function search() {
         $this->setHeader('a', 'b');
         // Or $this->getTransport()->setHeaders(['a' => 'b']);
         $response = $this->getTransport()->post('/some-endpoint',['data' => 'some-data']);
@@ -123,13 +159,28 @@ class MyClass extends CrmProvider {
 }
 ```
 
-## Sending/Receiving data from CRM Provider
+## Sample Zoho CRM Provider
 
-Lets begin implementing our `ZohoCrmProvider` class. Lets say we wish to search records and create lead. We can easily implement this.
-
-### Search records
+Lets implement `ZohoCrm` class to search leads. Lets say we wish to search records and create lead. We can easily implement this.
 
 ```php
+use \MyOperator\Crm\CrmProvider;
+
+class ZohoCrm extends CrmProvider{
+
+    // Zoho uses Zoho-oauthtoken as bearer
+    function getOauthTokenKey() {
+        return 'Zoho-oauthtoken';
+    }
+
+    // Zoho implementation to refresh token
+    function refreshToken($client_id, $client_secret, $refresh_token) {
+        $transport = $this->getTransport();
+        $response = $transport->post("https://accounts.zoho.in/oauth/v2/token?refresh_token={$refresh_token}&client_id={$client_id}&client_secret={$client_secret}&grant_type=refresh_token");
+        $response =  $response->json();
+        return ['access_token' => $response['access_token'], 'timeout' => $response['expiry_in_secs']];
+    }
+
     // This searches Zoho CRM for phone records
     public function searchByPhone($phonenumber) {
         $criteria = "((Phone:equals:{$phonenumber})or(Mobile:equals:{$phonenumber}))";
@@ -139,7 +190,7 @@ Lets begin implementing our `ZohoCrmProvider` class. Lets say we wish to search 
 
         try { 
             $response = $curl_lib->get(
-                self::CRM_BASE_URL . '/leads/search', 
+                'https://www.zohoapis.in/crm/v2/leads/search', 
                 ['criteria' => $criteria]
             );
             if($response->getStatus() == 204) {
@@ -147,6 +198,7 @@ Lets begin implementing our `ZohoCrmProvider` class. Lets say we wish to search 
             }
             return $response->json();
         } catch (\Exception $e) {
+            // Some zoho exception occured. Handle it
             throw $e;
         }
     }
@@ -155,31 +207,40 @@ Lets begin implementing our `ZohoCrmProvider` class. Lets say we wish to search 
 
 ## Handling expired token
 
-The Major benefit of using `Crm\CrmProvider` library is to handle things such as 
+The Major benefit of using `\MyOperator\Crm\CrmProvider` library is to handle things such as 
 exception handling, refreshing tokens automatically and providing a basic curl 
 transport mechanism. 
 
-Hence, any method you create on the class that extends `Crm\CrmProvider` class, it
+Hence, any method you create on the class that extends `\MyOperator\Crm\CrmProvider` class, it
 automatically makes a call to refresh your token. Remember having the need to implement
 `refreshToken` method in your class? This is where the magic is. 
 
-`Crm\CrmProvider` interally searches for `refreshToken` method in your class to get the
-refreshed `access_token` and `timeout`. 
+`\MyOperator\Crm\CrmProvider` interally searches for `refreshToken` method in your class to get the refreshed `access_token` and `timeout`. 
 
-Essentially, the method your wrote earlier `searchByPhone` can be thought as:
+Essentially, the method your wrote earlier can be thought as:
 
 ```php
-try {
-    $this->searchByPhone($phonenumber);
-} catch(\Exception $e) {
-    // 401 means your api is unauthorized because the token was invalid
-    // hence CrmProvider will try to refresh the token and make call
-    // once again
-    if ($e->getCode() === 401) {
-        $this->searchByPhone($phonenumber);
-    } else {
-        // throw all other exceptions as they are
-        throw $e;
+class MyCrm {
+
+    function refreshToken($client_id, $client_secret, $refresh_token) {
+        // This is only a sample implementation
+        $response = $your_curl_lib->post("/token?refresh_token={$refresh_token}&client_id= {$client_id}&client_secret={$client_secret}&grant_type=refresh_token");
+        return ['access_token' => $response['access_token'], 'timeout' => $response['expiry_in_secs']];
+    }
+
+    function search($record) {
+        try {
+            // Your crm search api
+        } catch(\Exception $e) {
+            if ($e->getCode() === 401) {
+                list($accesstoken, $expiry) = $this->refreshToken($clientid, $clientsecret, $refreshtoken);
+                // Set access token in headers using your curl library
+                // Your crm search api (again)
+            } else {
+                // throw all other exceptions as they are
+                throw $e;
+            }
+        }
     }
 }
 ```
