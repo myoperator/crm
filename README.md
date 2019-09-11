@@ -2,6 +2,28 @@
 
 This repository acts as a CRM provider base for CRMs using OAuth. You can easily use this library to extend your CRM provider implementations. For instance, zoho, pipedrive etc. can easily be implemented to use Oauth using this CRM provider
 
+## Install
+
+Use composer to install this package. To install, add following in your compsoer.json
+
+```json
+{
+   "require": {
+        "myoperator/crm": "dev-master"
+    },
+    "repositories": [
+        {
+            "url": "http://github.com/myoperator/crm",
+            "type": "vcs"
+        }
+    ]
+}
+```
+
+and then `composer install` to install the package.
+
+```sh
+
 ## Quick Start
 
 ### Creating your CRM Class
@@ -21,7 +43,7 @@ class MyCrm extends CrmProvider {
 
 ### Implement Refresh token mechanism
 Once you extend this class, you get access to several methods, which will help you get access
-token and refresh token. You will need to implement `refreshToken()` method for your CRM controller to tell how to refresh token work from your crm provider.
+token and refresh token. You will need to implement `refreshToken()` method for your CRM controller to tell how to refresh token from your crm provider.
 
 ```php
 use \MyOperator\Crm\CrmProvider;
@@ -80,7 +102,6 @@ Now comes the final part. At this point, you will have two files:
 You can implement this as:
 
 ```php
-
 $company_id = 1;
 
 $mycrm = new MyCrm($company_id);
@@ -109,7 +130,7 @@ class MyCrm extends CrmProvider {
 ```
 
 You can also override this method to set custom bearer on your authorization headers.
-For example, some zoho uses `Zoho-oauthtoken` as bearer. You can easily set this as:
+For example, zoho uses `Zoho-oauthtoken` as bearer. You can easily set this as:
 
 ```php
 class MyCrm extends CrmProvider {
@@ -125,7 +146,7 @@ class MyCrm extends CrmProvider {
 
 ### getTransport()
 
-This gives you a `MyOperator\Transport` instance. You can use this to make `get` or `post` calls to your API.
+This gives you a [`MyOperator\Transport`](http://github.com/myoperator/transport) instance. You can use this to make `get` or `post` calls to your API.
 
 ```php
 class MyCrm extends CrmProvider {
@@ -133,11 +154,11 @@ class MyCrm extends CrmProvider {
 	function search() {
 		$curlTransport = $this->getTransport();
 		$response = $curlTransport->post(
-            '/some-endpoint',
-            ['data' => 'some-data']
+			'/some-endpoint', 
+			['data' => 'some-data']
 		);
-        var_dump($response->json());
-        // {"some response": "in json"}
+        	var_dump($response->json());
+        	// {"some response": "in json"}
 	}
 }
 ```
@@ -150,11 +171,11 @@ You can also set custom headers to your crm endpoint, if you need so.
 class MyClass extends CrmProvider {
 
 	function search() {
-        $this->setHeader('a', 'b');
-        // Or $this->getTransport()->setHeaders(['a' => 'b']);
-        $response = $this->getTransport()->post('/some-endpoint',['data' => 'some-data']);
-        var_dump($response->json());
-        // {"some response": "in json"}
+        	$this->setHeader('a', 'b');
+       		// Or $this->getTransport()->setHeaders(['a' => 'b']);
+        	$response = $this->getTransport()->post('/some-endpoint',['data' => 'some-data']);
+        	var_dump($response->json());
+        	// {"some response": "in json"}
 	}
 }
 ```
