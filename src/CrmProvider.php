@@ -64,7 +64,7 @@ abstract class CrmProvider
     }
 
     public function getTransport($baseurl = null) {
-        if(!$this->transport) 
+        if(!isset($this->transport)) 
             $this->transport = new Transport($baseurl);
         return $this->transport;
     }
