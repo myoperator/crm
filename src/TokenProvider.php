@@ -1,5 +1,5 @@
 <?php
-namespace \MyOperator\Crm;
+namespace MyOperator\Crm;
 
 interface TokenProvider {
     /**

@@ -1,5 +1,5 @@
 <?php
-namespace \MyOperator\Crm;
+namespace MyOperator\Crm;
 
 use \MyOperator\Crm\TokenProvider;
 
@@ -35,11 +35,12 @@ class TokenHandler
         if(!$this->refreshCallback) return null;
         try{
             $access_token = $this->refreshCallback->__invoke($client_id, $client_secret, $refresh_token);
-            if(is_array($access_token) && isset($access_token['access_token'])) {
-                $access_token = $access_token['access_token'];
+            if(is_array($access_token) && array_key_exists('access_token', $access_token)) {
+                $access_token = isset($access_token['access_token']) ? $access_token['access_token'] : null;
                 $timeout = isset($access_token['timeout']) ? $access_token['timeout'] : self::TIMEOUT;
             }
-            if($access_token) {
+            
+            if($access_token !== null) {
                 $this->provider->setAccessToken($this->company_id, $access_token, $timeout);
                 return $access_token;
             }

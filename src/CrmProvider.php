@@ -1,46 +1,54 @@
 <?php
-namespace \MyOperator\Crm;
+namespace MyOperator\Crm;
 
 use \MyOperator\Transport;
 
 abstract class CrmProvider
 {
     private $tokenHandler;
+    private $tokenprovider;
 
     public function __construct($company_id) {
         $this->company_id = $company_id;
     }
 
-    private function setTokenHandler(TokenHandler $tokenHandler) {
-        $this->tokenHandler = $tokenHandler;
-        $this->tokenHandler->setRefreshMethod(function ($client_id, $client_secret, $refresh_token) {
-            return $this->refreshToken($client_id, $client_secret, $refresh_token);
-        });
-    }
-
     public function setTokenProvider(\MyOperator\Crm\TokenProvider $provider)
     {
-        $tokenHandler = new \MyOperator\Crm\TokenHandler($this->company_id);
-        $tokenHandler->setProvider($provider);
-        $this->setTokenHandler($tokenHandler);
+        $this->tokenprovider = $provider;
+    }
+
+    public function getTokenProvider() 
+    {
+        return $this->tokenprovider;
+    }
+
+    private function getTokenHandler() {
+        $tokenprovider = $this->getTokenProvider();
+        if(!$tokenprovider) {
+            throw new \Exception(
+                "Token Provider is not set\n Provide a provider which implements \MyOperator\Crm\TokenProvider class");
+        }
+        if(!$this->tokenHandler) {
+            $this->tokenHandler = new \MyOperator\Crm\TokenHandler($this->company_id);
+            $this->tokenHandler->setProvider($tokenprovider);
+            $this->tokenHandler->setRefreshMethod(function ($client_id, $client_secret, $refresh_token) {
+                return $this->refreshToken($client_id, $client_secret, $refresh_token);
+            });
+        }
+        return $this->tokenHandler;
     }
 
     public function __call($method, $args)
     {
-        if(!$this->tokenHandler) {
-            throw new \Exception(
-                "Token Provider is not set\n Provide a provider which implements \MyOperator\Crm\TokenProvider class");
-        }
-
         if(!in_array($method, ['refreshToken','getOauthTokenKey'])) {
             try {
                 $this->setAuthHeaders();
-                call_user_func_array([$this, $method], $args);
+                return call_user_func_array([$this, $method], $args);
             } catch(\Exception $e) {
                 // This probably means unauthorized
                 if($e->getCode() == 401) {
-                    $this->tokenHandler->refreshToken();
-                    call_user_func_array([$this, $method], $args);
+                    $this->getTokenHandler()->refreshToken();
+                    return call_user_func_array([$this, $method], $args);
                 } else {
                     throw $e;
                 }
@@ -61,7 +69,7 @@ abstract class CrmProvider
         return $this->transport;
     }
     
-    protected function getOauthTokenKey() {
+    public function getOauthTokenKey() {
         return 'Bearer';
     }
 
@@ -70,13 +78,13 @@ abstract class CrmProvider
     }
 
     protected function getAccessToken() {
-        return $this->tokenHandler->getAccessToken($this->company_id);
+        return $this->getTokenHandler()->getAccessToken($this->company_id);
     }
 
     protected function setAuthHeaders() {
         $transport = $this->getTransport();
         $oauth_token_key = $this->getOauthTokenKey();
-        $access_token = $this->tokenHandler->getAccessToken($this->company_id);
+        $access_token = $this->getTokenHandler()->getAccessToken($this->company_id);
         $this->transport->setHeaders(['Authorization' => "{$oauth_token_key} {$access_token}"]);
     }
 
